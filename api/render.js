@@ -1,5 +1,5 @@
 // Vercel Serverless Function: api/render.js
-// Proxies render requests to JSON-to-Video APIs (e.g. Shotstack) securely
+// Proxies render requests to json2video.com securely
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,35 +15,30 @@ export default async function handler(req, res) {
   // Calculate duration per panel
   const durationPerPanel = Number(duration) / panels.length;
 
-  // Format payload according to Shotstack/JSON-to-Video schema format
-  const clips = panels.map((panel, index) => ({
-    asset: {
-      type: 'image',
-      src: panel.image || 'https://images.unsplash.com/photo-1542751371-adc38448a05e' // Fallback image
-    },
-    start: index * durationPerPanel,
-    length: durationPerPanel,
-    effect: 'zoomIn' // Adds camera motion effect corresponding to the action theme
+  // Format elements matching JSON2Video project schema
+  const scenes = panels.map((panel, index) => ({
+    comment: `Panel ${panel.id}`,
+    elements: [
+      {
+        type: 'image',
+        src: panel.image || 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80',
+        duration: durationPerPanel,
+        extra: {
+          zoom: 'in' // Adds camera zoom effect for cinematic motion
+        }
+      }
+    ]
   }));
 
   const payload = {
-    timeline: {
-      tracks: [
-        {
-          clips: clips
-        }
-      ]
-    },
-    output: {
-      format: 'mp4',
-      resolution: 'sd'
-    }
+    resolution: 'hd',
+    quality: 'high',
+    scenes: scenes
   };
 
   try {
     const apiKey = process.env.JSON_TO_VIDEO_API_KEY;
     if (!apiKey) {
-      // Mock mode fallback for local dev when env keys aren't set yet
       console.warn('JSON_TO_VIDEO_API_KEY not found. Running in simulation mode.');
       return res.status(200).json({ 
         success: true, 
@@ -52,8 +47,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Call Shotstack API
-    const response = await fetch('https://api.shotstack.io/v1/render', {
+    // Call JSON2Video API
+    const response = await fetch('https://api.json2video.com/v2/movie', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,12 +60,12 @@ export default async function handler(req, res) {
     const data = await response.json();
     
     if (!response.ok) {
-      return res.status(response.status).json({ error: data.message || 'Render request failed' });
+      return res.status(response.status).json({ error: data.message || 'JSON2Video render request failed' });
     }
 
     return res.status(200).json({ 
       success: true, 
-      renderId: data.response.id 
+      renderId: data.project // JSON2Video returns project UUID
     });
 
   } catch (error) {
