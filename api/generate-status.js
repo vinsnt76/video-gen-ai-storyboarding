@@ -36,9 +36,8 @@ export default async function handler(req, res) {
     const { prompt, model } = JSON.parse(payloadStr);
 
     // Map UI model to Eden AI provider
-    // GPT Image 2 -> openai
-    // Nano Banana Pro -> stabilityai
-    const provider = model === 'Nano Banana Pro' ? 'stabilityai' : 'openai';
+    // Both mapped to openai to guarantee public CDN URLs for JSON2Video rendering
+    const provider = 'openai';
 
     const response = await fetch('https://api.edenai.run/v2/image/generation', {
       method: 'POST',
@@ -49,7 +48,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         providers: provider,
         text: prompt,
-        resolution: '512x512',
+        resolution: '1024x1024',
         num_images: 4
       })
     });
@@ -60,11 +59,23 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ error: data.message || 'Eden AI task failed' });
     }
 
-    const providerResult = data[provider];
+    const actualKey = Object.keys(data).find(k => k.startsWith(provider));
+    const providerResult = actualKey ? data[actualKey] : null;
     let images = [];
 
     if (providerResult && providerResult.items) {
-      images = providerResult.items.map(item => item.image_resource_url || item.image);
+      images = providerResult.items.map(item => {
+        const imgVal = item.image_resource_url || item.image;
+        if (imgVal && !imgVal.startsWith('http') && !imgVal.startsWith('data:')) {
+          return `data:image/png;base64,${imgVal}`;
+        }
+        return imgVal;
+      });
+    }
+
+    if (images.length === 0) {
+      const errMsg = providerResult?.error?.message || 'No images returned from Eden AI provider';
+      return res.status(500).json({ error: errMsg });
     }
 
     // Since this is a synchronous call wrapped in a polling endpoint, we return completed immediately

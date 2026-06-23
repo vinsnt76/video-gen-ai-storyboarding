@@ -1,5 +1,5 @@
 // Vercel Serverless Function: api/status.js
-// Securely poll json2video.com render progress
+// Securely poll JSON2Video render progress
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -22,8 +22,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'JSON_TO_VIDEO_API_KEY is not configured.' });
     }
 
-    // Call JSON2Video Movie project API to get render job status
-    const response = await fetch(`https://api.json2video.com/v2/movie?project=${id}`, {
+    const response = await fetch(`https://api.json2video.com/v2/movies?project=${id}`, {
       method: 'GET',
       headers: {
         'x-api-key': apiKey
@@ -32,28 +31,33 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json({ error: data.message || 'Status query failed' });
+    if (!response.ok || !data.success) {
+      return res.status(response.status || 400).json({ error: data.message || 'Status query failed' });
     }
 
-    // Map JSON2Video movie project status (0: idle, 1: rendering, 2: completed, 3: failed)
-    const projectStatus = data.movie?.status; 
-    let statusText = 'queued';
-    let progress = 10;
+    const movie = data.movie;
+    const status = movie.status; // queued, running, done, error, timeout
 
-    if (projectStatus === 1) {
-      statusText = 'rendering';
-      progress = 50;
-    } else if (projectStatus === 2) {
-      statusText = 'done';
+    let mappedStatus = 'rendering';
+    let progress = 0;
+
+    if (status === 'queued') {
+      mappedStatus = 'rendering';
+      progress = 20;
+    } else if (status === 'running') {
+      mappedStatus = 'rendering';
+      progress = 60;
+    } else if (status === 'done') {
+      mappedStatus = 'done';
       progress = 100;
-    } else if (projectStatus === 3) {
-      statusText = 'failed';
+    } else if (status === 'error' || status === 'timeout') {
+      mappedStatus = 'failed';
+      progress = 0;
     }
 
     return res.status(200).json({
-      status: statusText,
-      url: data.movie?.url || '', // Final generated MP4 URL
+      status: mappedStatus,
+      url: movie.url,
       progress: progress
     });
 
