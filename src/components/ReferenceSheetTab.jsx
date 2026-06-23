@@ -19,29 +19,81 @@ export default function ReferenceSheetTab({ referenceSheet, setReferenceSheet })
     }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setGenerating(true);
-    // Simulate generation with state changes
-    setTimeout(() => {
-      // Mock generated grids/expressions/angles
-      const mockImages = [
-        'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=300&q=80', // front angle
-        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=80', // expression profile
-        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80', // side profile
-        'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&q=80'  // action pose
-      ];
-      setGridImages(mockImages);
-      // Create a combined canvas or simulated layout URL
-      setReferenceSheet({
-        id: Date.now().toString(),
-        prompt,
-        model,
-        images: mockImages,
-        referenceImage: uploadedImage,
-        createdAt: new Date().toLocaleTimeString()
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt,
+          model
+        })
       });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit generation task');
+      }
+
+      const taskId = data.taskId;
+
+      // Poll status endpoint until completion
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/generate-status?id=${taskId}`);
+          const statusData = await statusRes.json();
+
+          if (!statusRes.ok) {
+            clearInterval(pollInterval);
+            setGenerating(false);
+            alert(`Poll failed: ${statusData.error}`);
+            return;
+          }
+
+          if (statusData.status === 'completed') {
+            clearInterval(pollInterval);
+            
+            const finalImages = statusData.images && statusData.images.length > 0
+              ? statusData.images
+              : [
+                  'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=300&q=80',
+                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=80',
+                  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80',
+                  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&q=80'
+                ];
+
+            setGridImages(finalImages);
+            setReferenceSheet({
+              id: Date.now().toString(),
+              prompt,
+              model,
+              images: finalImages,
+              referenceImage: uploadedImage,
+              createdAt: new Date().toLocaleTimeString()
+            });
+            setGenerating(false);
+
+          } else if (statusData.status === 'failed') {
+            clearInterval(pollInterval);
+            setGenerating(false);
+            alert('Generation failed on Eden Art API.');
+          }
+        } catch (pollErr) {
+          clearInterval(pollInterval);
+          setGenerating(false);
+          console.error(pollErr);
+        }
+      }, 2000);
+
+    } catch (err) {
       setGenerating(false);
-    }, 2500);
+      console.error(err);
+      alert(`API Connection error: ${err.message}. Check environment credentials.`);
+    }
   };
 
   return (
