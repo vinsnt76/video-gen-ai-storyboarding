@@ -21,54 +21,55 @@ export default async function handler(req, res) {
     });
   }
 
-  const apiKey = process.env.EDEN_API_KEY;
+  const apiKey = process.env.EDEN_API_KEY || process.env.EDENAI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'EDEN_API_KEY is not configured.' });
+    return res.status(500).json({ error: 'EDEN_API_KEY or EDENAI_API_KEY is not configured.' });
+  }
+
+  if (!id.startsWith('edenai-task-')) {
+    return res.status(400).json({ error: 'Invalid task ID format' });
   }
 
   try {
-    const response = await fetch(`https://api.eden.art/v2/tasks/${id}`, {
-      method: 'GET',
+    // Decode the prompt and model from the base64 ID
+    const payloadStr = Buffer.from(id.replace('edenai-task-', ''), 'base64').toString('utf-8');
+    const { prompt, model } = JSON.parse(payloadStr);
+
+    // Map UI model to Eden AI provider
+    // GPT Image 2 -> openai
+    // Nano Banana Pro -> stabilityai
+    const provider = model === 'Nano Banana Pro' ? 'stabilityai' : 'openai';
+
+    const response = await fetch('https://api.edenai.run/v2/image/generation', {
+      method: 'POST',
       headers: {
-        'X-Api-Key': apiKey
-      }
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        providers: provider,
+        text: prompt,
+        resolution: '512x512',
+        num_images: 4
+      })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: data.message || 'Status query failed' });
+      return res.status(response.status).json({ error: data.message || 'Eden AI task failed' });
     }
 
-    const task = data.task;
-    
-    // Extract generated image URLs from result
+    const providerResult = data[provider];
     let images = [];
-    if (task.result) {
-      if (Array.isArray(task.result)) {
-        task.result.forEach(resItem => {
-          if (resItem.output) {
-            if (Array.isArray(resItem.output)) {
-              images.push(...resItem.output);
-            } else {
-              images.push(resItem.output);
-            }
-          }
-        });
-      } else if (typeof task.result === 'object') {
-        const output = task.result.output;
-        if (output) {
-          if (Array.isArray(output)) {
-            images.push(...output);
-          } else {
-            images.push(output);
-          }
-        }
-      }
+
+    if (providerResult && providerResult.items) {
+      images = providerResult.items.map(item => item.image_resource_url || item.image);
     }
 
+    // Since this is a synchronous call wrapped in a polling endpoint, we return completed immediately
     return res.status(200).json({
-      status: task.status, // pending, processing, completed, failed
+      status: 'completed',
       images: images
     });
 

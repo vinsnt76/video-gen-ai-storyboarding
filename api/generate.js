@@ -12,11 +12,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing prompt parameter' });
   }
 
-  const apiKey = process.env.EDEN_API_KEY;
+  const apiKey = process.env.EDEN_API_KEY || process.env.EDENAI_API_KEY;
 
   if (!apiKey) {
     // Mock mode fallback for local dev when env keys aren't set yet
-    console.warn('EDEN_API_KEY not found. Running in simulation mode.');
+    console.warn('EDEN_API_KEY/EDENAI_API_KEY not found. Running in simulation mode.');
     return res.status(200).json({
       success: true,
       mock: true,
@@ -24,39 +24,14 @@ export default async function handler(req, res) {
     });
   }
 
-  // Map chosen UI model to Eden Art tools
-  // GPT Image 2 -> openai_image_generate
-  // Nano Banana Pro -> flux_schnell
-  const toolName = model === 'Nano Banana Pro' ? 'flux_schnell' : 'openai_image_generate';
-
-  const payload = {
-    tool: toolName,
-    args: {
-      prompt: prompt,
-      n_samples: 4
-    },
-    makePublic: false
-  };
-
   try {
-    const response = await fetch('https://api.eden.art/v2/tasks/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': apiKey
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({ error: data.message || 'Eden task creation failed' });
-    }
+    // Encode the prompt and model into a base64 token so we don't need server-side state
+    const payload = { prompt, model };
+    const taskId = 'edenai-task-' + Buffer.from(JSON.stringify(payload)).toString('base64');
 
     return res.status(200).json({
       success: true,
-      taskId: data.task._id
+      taskId: taskId
     });
 
   } catch (error) {
