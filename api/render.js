@@ -1,0 +1,79 @@
+// Vercel Serverless Function: api/render.js
+// Proxies render requests to JSON-to-Video APIs (e.g. Shotstack) securely
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { panels, duration, prompt } = req.body;
+
+  if (!panels || !Array.isArray(panels)) {
+    return res.status(400).json({ error: 'Missing or invalid panels list' });
+  }
+
+  // Calculate duration per panel
+  const durationPerPanel = Number(duration) / panels.length;
+
+  // Format payload according to Shotstack/JSON-to-Video schema format
+  const clips = panels.map((panel, index) => ({
+    asset: {
+      type: 'image',
+      src: panel.image || 'https://images.unsplash.com/photo-1542751371-adc38448a05e' // Fallback image
+    },
+    start: index * durationPerPanel,
+    length: durationPerPanel,
+    effect: 'zoomIn' // Adds camera motion effect corresponding to the action theme
+  }));
+
+  const payload = {
+    timeline: {
+      tracks: [
+        {
+          clips: clips
+        }
+      ]
+    },
+    output: {
+      format: 'mp4',
+      resolution: 'sd'
+    }
+  };
+
+  try {
+    const apiKey = process.env.JSON_TO_VIDEO_API_KEY;
+    if (!apiKey) {
+      // Mock mode fallback for local dev when env keys aren't set yet
+      console.warn('JSON_TO_VIDEO_API_KEY not found. Running in simulation mode.');
+      return res.status(200).json({ 
+        success: true, 
+        mock: true,
+        renderId: 'mock-render-' + Math.floor(Math.random() * 10000)
+      });
+    }
+
+    // Call Shotstack API
+    const response = await fetch('https://api.shotstack.io/v1/render', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data.message || 'Render request failed' });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      renderId: data.response.id 
+    });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+}
