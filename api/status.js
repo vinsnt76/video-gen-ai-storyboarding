@@ -35,10 +35,18 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ error: data.message || 'Status query failed' });
     }
 
+    const status = data.response.status;
+    let progress = 0;
+    if (status === 'queued') progress = 10;
+    else if (status === 'fetching') progress = 30;
+    else if (status === 'rendering') progress = 60;
+    else if (status === 'saving') progress = 85;
+    else if (status === 'done') progress = 100;
+
     return res.status(200).json({
-      status: data.response.status, // queued, rendering, done, failed
+      status: status, // queued, rendering, done, failed
       url: data.response.url,
-      progress: data.response.completion
+      progress: progress
     });
 
   } catch (error) {

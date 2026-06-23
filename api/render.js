@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
   const { panels, duration, prompt } = req.body;
 
-  if (!panels || !Array.isArray(panels)) {
+  if (!panels || !Array.isArray(panels) || panels.length === 0) {
     return res.status(400).json({ error: 'Missing or invalid panels list' });
   }
 
