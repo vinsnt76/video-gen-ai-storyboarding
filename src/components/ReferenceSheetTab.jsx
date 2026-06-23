@@ -57,9 +57,20 @@ export default function ReferenceSheetTab({ referenceSheet, setReferenceSheet })
           if (statusData.status === 'completed') {
             clearInterval(pollInterval);
             
+            const isIndustrial = prompt.toLowerCase().includes('industrial') || 
+                                 prompt.toLowerCase().includes('pipe') || 
+                                 prompt.toLowerCase().includes('refinery') || 
+                                 prompt.toLowerCase().includes('factory') || 
+                                 prompt.toLowerCase().includes('building');
+
             const finalImages = statusData.images && statusData.images.length > 0
               ? statusData.images
-              : [
+              : isIndustrial ? [
+                  'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=300&q=80',
+                  'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=300&q=80',
+                  'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&q=80',
+                  'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=300&q=80'
+                ] : [
                   'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=300&q=80',
                   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=80',
                   'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80',
