@@ -24,7 +24,24 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
     }
     setIsGeneratingAll(true);
 
-    const mockStoryboardImages = [
+    const isIndustrial = globalPrompt.toLowerCase().includes('industrial') || 
+                         globalPrompt.toLowerCase().includes('coolant') || 
+                         globalPrompt.toLowerCase().includes('refinery') || 
+                         globalPrompt.toLowerCase().includes('valve') || 
+                         globalPrompt.toLowerCase().includes('pipe');
+
+    // Make mock storyboard images reflect the reference style sheet and theme keywords
+    const mockStoryboardImages = isIndustrial ? [
+      'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80', // Pressure pipe system
+      'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&q=80', // Valves turning
+      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=400&q=80', // Flashing display panel
+      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', // Steam vent releasing
+      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=80', // Machinery assembly
+      'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=400&q=80', // Steel pipeline perspective
+      'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=400&q=80', // Pressure gauge monitoring
+      'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&q=80', // Warning alerts glow
+      'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80'  // Distillation columns at night
+    ] : [
       'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80', // bike rider starting engine
       'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&q=80', // speed readout zooming
       'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80', // neon alleyway perspective
