@@ -71,7 +71,21 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
     
     // Simulate single panel generation
     setTimeout(() => {
-      const randomNewImages = [
+      const panel = storyboard.find(p => p.id === panelId);
+      const combinedPrompt = ((panel?.prompt || '') + ' ' + globalPrompt).toLowerCase();
+      const isIndustrial = combinedPrompt.includes('industrial') || 
+                           combinedPrompt.includes('coolant') || 
+                           combinedPrompt.includes('refinery') || 
+                           combinedPrompt.includes('valve') || 
+                           combinedPrompt.includes('pipe') || 
+                           combinedPrompt.includes('darkness') || 
+                           combinedPrompt.includes('alarm');
+
+      const randomNewImages = isIndustrial ? [
+        'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80',
+        'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&q=80',
+        'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=400&q=80'
+      ] : [
         'https://images.unsplash.com/photo-1563089145-599997674d42?w=400&q=80',
         'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=400&q=80',
         'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80'
@@ -88,12 +102,25 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
 
   const savePanelEdit = () => {
     setStoryboard(prev => prev.map(p => p.id === editingPanel ? { ...p, prompt: editPrompt, status: 'generating' } : p));
+    const targetPanelId = editingPanel;
     setEditingPanel(null);
     
     // Simulate updating with prompt
     setTimeout(() => {
-      const mockEditedImg = 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&q=80';
-      setStoryboard(prev => prev.map(p => p.id === editingPanel ? { ...p, image: mockEditedImg, status: 'ready' } : p));
+      const combinedPrompt = (editPrompt + ' ' + globalPrompt).toLowerCase();
+      const isIndustrial = combinedPrompt.includes('industrial') || 
+                           combinedPrompt.includes('coolant') || 
+                           combinedPrompt.includes('refinery') || 
+                           combinedPrompt.includes('valve') || 
+                           combinedPrompt.includes('pipe') || 
+                           combinedPrompt.includes('darkness') || 
+                           combinedPrompt.includes('alarm');
+
+      const mockEditedImg = isIndustrial 
+        ? 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80' 
+        : 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&q=80';
+        
+      setStoryboard(prev => prev.map(p => p.id === targetPanelId ? { ...p, image: mockEditedImg, status: 'ready' } : p));
     }, 1500);
   };
 
