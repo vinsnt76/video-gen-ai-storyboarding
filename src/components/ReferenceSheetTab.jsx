@@ -8,14 +8,36 @@ export default function ReferenceSheetTab({ referenceSheet, setReferenceSheet })
   const [gridImages, setGridImages] = useState(null);
   const [uploadedImage, setUploadedImage] = useState(null);
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadedImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setGenerating(true);
+    try {
+      // 1. Request Signed Upload URL from our Vercel API
+      const res = await fetch('/api/upload-url');
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to generate upload URL');
+
+      // 2. Perform direct binary PUT upload to Google Cloud Storage
+      const uploadRes = await fetch(data.uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/png'
+        },
+        body: file
+      });
+
+      if (!uploadRes.ok) throw new Error('GCS upload rejection');
+
+      // 3. Keep track of GCS location paths in the react state
+      setUploadedImage(data.publicUrl);
+    } catch (err) {
+      console.error(err);
+      alert(`GCS Upload Failed: ${err.message}`);
+    } finally {
+      setGenerating(false);
     }
   };
 

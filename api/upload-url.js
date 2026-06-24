@@ -1,0 +1,50 @@
+// Vercel Serverless Function: api/upload-url.js
+// Generates a signed URL to upload files directly from the browser to GCS
+
+import { Storage } from "@google-cloud/storage";
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    // 1. Load credentials from environment variable JSON
+    const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    let storageOptions = {
+      projectId: "antigravity-cli-and-adk-500010"
+    };
+
+    if (serviceAccountJson) {
+      const credentials = JSON.parse(serviceAccountJson);
+      storageOptions.credentials = credentials;
+    }
+
+    const storage = new Storage(storageOptions);
+    const bucketName = "antigravity-storyboards";
+    const filename = `${crypto.randomUUID()}.png`;
+    const blobName = `seed-images/${filename}`;
+
+    const [url] = await storage
+      .bucket(bucketName)
+      .file(blobName)
+      .getSignedUrl({
+        version: "v4",
+        action: "write",
+        expires: Date.now() + 10 * 60 * 1000, // 10 minutes expiry
+        contentType: "image/png",
+      });
+
+    const publicUrl = `https://storage.googleapis.com/${bucketName}/${blobName}`;
+
+    return res.status(200).json({
+      uploadUrl: url,
+      publicUrl: publicUrl,
+      gcsPath: `gs://${bucketName}/${blobName}`,
+    });
+
+  } catch (error) {
+    console.error('Error generating signed URL:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
