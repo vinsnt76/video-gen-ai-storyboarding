@@ -58,8 +58,9 @@ export default async function handler(req, res) {
     // If a reference uploader seed image GCS/Public URL is linked, pass it as image-to-image context
     if (referenceImage) {
       instances[0].image = {
-        gcsUri: referenceImage
+        imageBytes: "" // required empty string when utilizing gcsUri
       };
+      instances[0].image.gcsUri = referenceImage;
       parameters.imageGenerationMode = "image-to-image";
     }
 
