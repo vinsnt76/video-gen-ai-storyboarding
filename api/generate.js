@@ -61,6 +61,10 @@ export default async function handler(req, res) {
       let gcsUri = referenceImage;
       if (referenceImage.startsWith("https://storage.googleapis.com/")) {
         gcsUri = referenceImage.replace("https://storage.googleapis.com/", "gs://");
+        const queryIdx = gcsUri.indexOf("?");
+        if (queryIdx > -1) {
+          gcsUri = gcsUri.substring(0, queryIdx);
+        }
       }
       instances[0].image = {
         gcsUri: gcsUri
