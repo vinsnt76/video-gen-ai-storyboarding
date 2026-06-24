@@ -11,8 +11,11 @@ export default async function handler(req, res) {
   try {
     // 1. Load credentials from environment variable JSON
     const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    const projectId = process.env.GCP_PROJECT_ID || "antigravity-cli-and-adk-500010";
+    const bucketName = process.env.GCS_BUCKET_NAME || "antigravity-storyboards";
+
     let storageOptions = {
-      projectId: "antigravity-cli-and-adk-500010"
+      projectId: projectId
     };
 
     if (serviceAccountJson) {
@@ -21,7 +24,6 @@ export default async function handler(req, res) {
     }
 
     const storage = new Storage(storageOptions);
-    const bucketName = "antigravity-storyboards";
     const filename = `${crypto.randomUUID()}.png`;
     const blobName = `seed-images/${filename}`;
 

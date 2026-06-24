@@ -18,11 +18,14 @@ export default async function handler(req, res) {
   try {
     // 1. Setup GCP Authentication
     const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    const projectId = process.env.GCP_PROJECT_ID || "antigravity-cli-and-adk-500010";
+    const bucketName = process.env.GCS_BUCKET_NAME || "antigravity-storyboards";
+
     let authOptions = {
       scopes: "https://www.googleapis.com/auth/cloud-platform"
     };
     let storageOptions = {
-      projectId: "antigravity-cli-and-adk-500010"
+      projectId: projectId
     };
 
     if (serviceAccountJson) {
@@ -76,7 +79,6 @@ export default async function handler(req, res) {
 
     // 4. Save generated base64 images directly into the public GCS bucket
     const storage = new Storage(storageOptions);
-    const bucketName = "antigravity-storyboards";
     const publicUrls = [];
 
     for (let i = 0; i < predictions.length; i++) {
