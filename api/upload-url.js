@@ -37,7 +37,16 @@ export default async function handler(req, res) {
         contentType: "image/png",
       });
 
-    const publicUrl = `https://storage.googleapis.com/${bucketName}/${blobName}`;
+    const [readUrl] = await storage
+      .bucket(bucketName)
+      .file(blobName)
+      .getSignedUrl({
+        version: "v4",
+        action: "read",
+        expires: Date.now() + 2 * 60 * 60 * 1000, // 2 hours expiry
+      });
+
+    const publicUrl = readUrl;
 
     return res.status(200).json({
       uploadUrl: url,

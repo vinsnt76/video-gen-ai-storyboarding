@@ -93,11 +93,16 @@ export default async function handler(req, res) {
 
       await file.save(buffer, {
         contentType: 'image/png',
-        resumable: false,
-        public: true // Make file public for JSON2Video and UI reading
+        resumable: false
       });
 
-      publicUrls.push(`https://storage.googleapis.com/${bucketName}/${filename}`);
+      const [readUrl] = await file.getSignedUrl({
+        version: "v4",
+        action: "read",
+        expires: Date.now() + 2 * 60 * 60 * 1000, // 2 hours expiry
+      });
+
+      publicUrls.push(readUrl);
     }
 
     // Return GCS paths back to the client immediately (no polling needed)
