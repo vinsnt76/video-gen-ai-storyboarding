@@ -2,6 +2,7 @@
 // Generates a signed URL to upload files directly from the browser to GCS
 
 import { Storage } from "@google-cloud/storage";
+import crypto from "crypto";
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
