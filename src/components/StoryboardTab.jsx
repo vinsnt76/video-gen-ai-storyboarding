@@ -8,13 +8,12 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
   const [editPrompt, setEditPrompt] = useState('');
 
   const initializeStoryboard = () => {
-    // Generate empty 9 panels
-    const emptyPanels = Array.from({ length: 9 }, (_, i) => ({
-      id: i + 1,
-      image: null,
-      prompt: `Panel ${i + 1} detailing a key moment of the chase.`,
-      status: 'idle'
-    }));
+    // Generate empty 3 panels (Cinematic sequence)
+    const emptyPanels = [
+      { id: 1, image: null, prompt: "Establishing Shot: Wide view of the neon-drenched alleyway with hover bikes ready.", status: 'idle' },
+      { id: 2, image: null, prompt: "Action Shot: Mid-angle shot of the bikes speeding down the alley, motion blur.", status: 'idle' },
+      { id: 3, image: null, prompt: "Detail Shot: Close-up on the rider's intense visor reflection and engine sparks.", status: 'idle' }
+    ];
     setStoryboard(emptyPanels);
   };
 
@@ -32,30 +31,22 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
 
     // Make mock storyboard images reflect the reference style sheet and theme keywords
     const mockStoryboardImages = isIndustrial ? [
-      'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80', // Pressure pipe system
-      'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&q=80', // Valves turning
-      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=400&q=80', // Flashing display panel
-      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', // Steam vent releasing
-      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=80', // Machinery assembly
-      'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=400&q=80', // Steel pipeline perspective
-      'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=400&q=80', // Pressure gauge monitoring
-      'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&q=80', // Warning alerts glow
-      'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80'  // Distillation columns at night
+      'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80', // Pressure pipe system (Establishing)
+      'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&q=80', // Valves turning (Action)
+      'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=400&q=80'  // Warning alerts / pressure gauge (Detail)
     ] : [
       'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80', // bike rider starting engine
-      'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&q=80', // speed readout zooming
-      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80', // neon alleyway perspective
       'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&q=80', // corner drift close-up
-      'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80', // police drone emerging
-      'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=400&q=80', // bike jumping over obstacle
-      'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80', // intense looking rider portrait
-      'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&q=80', // spark blast explosion background
-      'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&q=80'  // bike riding away into neon skyline
+      'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80'  // intense looking rider portrait
     ];
 
     setTimeout(() => {
       setStoryboard(prev => {
-        const target = prev || Array.from({ length: 9 }, (_, i) => ({ id: i + 1, prompt: `Panel ${i + 1}`, status: 'idle' }));
+        const target = prev || [
+          { id: 1, prompt: "Establishing Shot", status: 'idle' },
+          { id: 2, prompt: "Action Shot", status: 'idle' },
+          { id: 3, prompt: "Detail Shot", status: 'idle' }
+        ];
         return target.map((panel, idx) => ({
           ...panel,
           image: mockStoryboardImages[idx],
@@ -130,10 +121,10 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
       <div className="glass-panel p-6 rounded-2xl border border-violet-500/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2 max-w-xl">
           <h2 className="text-xl font-bold flex items-center gap-2 text-violet-400">
-            <LayoutGrid className="w-5 h-5" /> 2. Generate Storyboard Grid
+            <LayoutGrid className="w-5 h-5" /> 2. Generate Storyboard Sequence
           </h2>
           <p className="text-sm text-slate-400">
-            Produce a structured 3x3 story sequence. Use your reference sheet to lock features, expressions, and environmental aesthetics.
+            Produce a structured 3-panel cinematic sequence (Establishing Shot, Action Shot, Close-Up Detail). Use your reference sheet to lock features and environment aesthetics.
           </p>
         </div>
 
@@ -244,11 +235,11 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
           ))}
         </div>
       ) : (
-        <div className="glass-panel p-12 rounded-2xl border border-slate-800 text-center space-y-4">
+        <div className="glass-panel p-12 rounded-2xl border border-slate-800 text-center space-y-4 max-w-md mx-auto">
           <LayoutGrid className="w-12 h-12 text-slate-600 mx-auto" />
           <h3 className="text-lg font-semibold text-slate-300">No Storyboard Initialized</h3>
-          <p className="text-sm text-slate-500 max-w-md mx-auto">
-            Click to initialize a 3x3 layout of empty panels which we can populate using the theme.
+          <p className="text-sm text-slate-500 max-w-sm mx-auto">
+            Click to initialize a 3-panel layout (Establishing, Action, Detail) which we can populate using the theme.
           </p>
           <button
             onClick={initializeStoryboard}

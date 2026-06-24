@@ -189,7 +189,7 @@ export default function VideoTab({ referenceSheet, storyboard, videos, setVideos
                 <div className="flex justify-between items-center bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80 text-xs">
                   <span className="text-slate-400">Storyboard:</span>
                   <span className={hasPhotos ? 'text-emerald-400' : 'text-amber-500'}>
-                    {hasPhotos ? '9 Panels Connected' : 'No Panels Rendered'}
+                    {hasPhotos ? '3 Panels Connected' : 'No Panels Rendered'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center bg-slate-900/50 p-2.5 rounded-xl border border-slate-800/80 text-xs">
