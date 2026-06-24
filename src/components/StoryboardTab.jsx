@@ -17,73 +17,69 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
     setStoryboard(emptyPanels);
   };
 
-  const handleGenerateAll = () => {
+  const handleGenerateAll = async () => {
     if (!storyboard) {
       initializeStoryboard();
     }
     setIsGeneratingAll(true);
 
-    const isIndustrial = globalPrompt.toLowerCase().includes('industrial') || 
-                         globalPrompt.toLowerCase().includes('coolant') || 
-                         globalPrompt.toLowerCase().includes('refinery') || 
-                         globalPrompt.toLowerCase().includes('valve') || 
-                         globalPrompt.toLowerCase().includes('pipe');
+    try {
+      // 1. Generate panels sequentially or parallel with style reference context
+      const generatedImages = await Promise.all(
+        storyboard.map(async (panel) => {
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: `${panel.prompt}. Match style: ${globalPrompt}`,
+              model: referenceSheet?.model || 'GPT Image 2',
+              referenceImage: referenceSheet?.images?.[0] || referenceSheet?.referenceImage || null
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed generating panel');
+          return data.images[0]; // Return the first predicted image variation
+        })
+      );
 
-    // Make mock storyboard images reflect the reference style sheet and theme keywords
-    const mockStoryboardImages = isIndustrial ? [
-      'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80', // Pressure pipe system (Establishing)
-      'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&q=80', // Valves turning (Action)
-      'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=400&q=80'  // Warning alerts / pressure gauge (Detail)
-    ] : [
-      'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80', // bike rider starting engine
-      'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&q=80', // corner drift close-up
-      'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400&q=80'  // intense looking rider portrait
-    ];
+      setStoryboard(prev => prev.map((panel, idx) => ({
+        ...panel,
+        image: generatedImages[idx],
+        status: 'ready'
+      })));
 
-    setTimeout(() => {
-      setStoryboard(prev => {
-        const target = prev || [
-          { id: 1, prompt: "Establishing Shot", status: 'idle' },
-          { id: 2, prompt: "Action Shot", status: 'idle' },
-          { id: 3, prompt: "Detail Shot", status: 'idle' }
-        ];
-        return target.map((panel, idx) => ({
-          ...panel,
-          image: mockStoryboardImages[idx],
-          status: 'ready'
-        }));
-      });
+    } catch (err) {
+      console.error(err);
+      alert(`Storyboard render failed: ${err.message}`);
+    } finally {
       setIsGeneratingAll(false);
-    }, 3000);
+    }
   };
 
-  const handleRegeneratePanel = (panelId) => {
+  const handleRegeneratePanel = async (panelId) => {
     setStoryboard(prev => prev.map(p => p.id === panelId ? { ...p, status: 'generating' } : p));
     
-    // Simulate single panel generation
-    setTimeout(() => {
+    try {
       const panel = storyboard.find(p => p.id === panelId);
-      const combinedPrompt = ((panel?.prompt || '') + ' ' + globalPrompt).toLowerCase();
-      const isIndustrial = combinedPrompt.includes('industrial') || 
-                           combinedPrompt.includes('coolant') || 
-                           combinedPrompt.includes('refinery') || 
-                           combinedPrompt.includes('valve') || 
-                           combinedPrompt.includes('pipe') || 
-                           combinedPrompt.includes('darkness') || 
-                           combinedPrompt.includes('alarm');
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `${panel.prompt}. Style: ${globalPrompt}`,
+          model: referenceSheet?.model || 'GPT Image 2',
+          referenceImage: referenceSheet?.images?.[0] || referenceSheet?.referenceImage || null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to re-roll panel');
 
-      const randomNewImages = isIndustrial ? [
-        'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80',
-        'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=400&q=80',
-        'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=400&q=80'
-      ] : [
-        'https://images.unsplash.com/photo-1563089145-599997674d42?w=400&q=80',
-        'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=400&q=80',
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80'
-      ];
-      const newImg = randomNewImages[Math.floor(Math.random() * randomNewImages.length)];
-      setStoryboard(prev => prev.map(p => p.id === panelId ? { ...p, image: newImg, status: 'ready' } : p));
-    }, 1500);
+      setStoryboard(prev => prev.map(p => p.id === panelId ? { ...p, image: data.images[0], status: 'ready' } : p));
+
+    } catch (err) {
+      console.error(err);
+      alert(`Panel regeneration failed: ${err.message}`);
+      setStoryboard(prev => prev.map(p => p.id === panelId ? { ...p, status: 'ready' } : p));
+    }
   };
 
   const openEditModal = (panel) => {
@@ -91,28 +87,31 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
     setEditPrompt(panel.prompt);
   };
 
-  const savePanelEdit = () => {
-    setStoryboard(prev => prev.map(p => p.id === editingPanel ? { ...p, prompt: editPrompt, status: 'generating' } : p));
+  const savePanelEdit = async () => {
     const targetPanelId = editingPanel;
+    setStoryboard(prev => prev.map(p => p.id === targetPanelId ? { ...p, prompt: editPrompt, status: 'generating' } : p));
     setEditingPanel(null);
     
-    // Simulate updating with prompt
-    setTimeout(() => {
-      const combinedPrompt = (editPrompt + ' ' + globalPrompt).toLowerCase();
-      const isIndustrial = combinedPrompt.includes('industrial') || 
-                           combinedPrompt.includes('coolant') || 
-                           combinedPrompt.includes('refinery') || 
-                           combinedPrompt.includes('valve') || 
-                           combinedPrompt.includes('pipe') || 
-                           combinedPrompt.includes('darkness') || 
-                           combinedPrompt.includes('alarm');
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `${editPrompt}. Style: ${globalPrompt}`,
+          model: referenceSheet?.model || 'GPT Image 2',
+          referenceImage: referenceSheet?.images?.[0] || referenceSheet?.referenceImage || null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed editing panel');
 
-      const mockEditedImg = isIndustrial 
-        ? 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=400&q=80' 
-        : 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=400&q=80';
-        
-      setStoryboard(prev => prev.map(p => p.id === targetPanelId ? { ...p, image: mockEditedImg, status: 'ready' } : p));
-    }, 1500);
+      setStoryboard(prev => prev.map(p => p.id === targetPanelId ? { ...p, image: data.images[0], status: 'ready' } : p));
+
+    } catch (err) {
+      console.error(err);
+      alert(`Panel update failed: ${err.message}`);
+      setStoryboard(prev => prev.map(p => p.id === targetPanelId ? { ...p, status: 'ready' } : p));
+    }
   };
 
   return (
