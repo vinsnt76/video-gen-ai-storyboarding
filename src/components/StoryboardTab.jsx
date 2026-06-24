@@ -18,15 +18,21 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
   };
 
   const handleGenerateAll = async () => {
-    if (!storyboard) {
-      initializeStoryboard();
+    let activeStoryboard = storyboard;
+    if (!activeStoryboard) {
+      activeStoryboard = [
+        { id: 1, image: null, prompt: "Establishing Shot: Wide view of the neon-drenched alleyway with hover bikes ready.", status: 'idle' },
+        { id: 2, image: null, prompt: "Action Shot: Mid-angle shot of the bikes speeding down the alley, motion blur.", status: 'idle' },
+        { id: 3, image: null, prompt: "Detail Shot: Close-up on the rider's intense visor reflection and engine sparks.", status: 'idle' }
+      ];
+      setStoryboard(activeStoryboard);
     }
     setIsGeneratingAll(true);
 
     try {
       // 1. Generate panels sequentially or parallel with style reference context
       const generatedImages = await Promise.all(
-        storyboard.map(async (panel) => {
+        activeStoryboard.map(async (panel) => {
           const res = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -42,7 +48,7 @@ export default function StoryboardTab({ referenceSheet, storyboard, setStoryboar
         })
       );
 
-      setStoryboard(prev => prev.map((panel, idx) => ({
+      setStoryboard(activeStoryboard.map((panel, idx) => ({
         ...panel,
         image: generatedImages[idx],
         status: 'ready'
