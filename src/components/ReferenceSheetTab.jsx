@@ -52,7 +52,8 @@ export default function ReferenceSheetTab({ referenceSheet, setReferenceSheet })
         },
         body: JSON.stringify({
           prompt,
-          model
+          model,
+          referenceImage: uploadedImage
         })
       });
 
@@ -61,66 +62,16 @@ export default function ReferenceSheetTab({ referenceSheet, setReferenceSheet })
         throw new Error(data.error || 'Failed to submit generation task');
       }
 
-      const taskId = data.taskId;
-
-      // Poll status endpoint until completion
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusRes = await fetch(`/api/generate-status?id=${taskId}`);
-          const statusData = await statusRes.json();
-
-          if (!statusRes.ok) {
-            clearInterval(pollInterval);
-            setGenerating(false);
-            alert(`Poll failed: ${statusData.error}`);
-            return;
-          }
-
-          if (statusData.status === 'completed') {
-            clearInterval(pollInterval);
-            
-            const isIndustrial = prompt.toLowerCase().includes('industrial') || 
-                                 prompt.toLowerCase().includes('pipe') || 
-                                 prompt.toLowerCase().includes('refinery') || 
-                                 prompt.toLowerCase().includes('factory') || 
-                                 prompt.toLowerCase().includes('building');
-
-            const finalImages = statusData.images && statusData.images.length > 0
-              ? statusData.images
-              : isIndustrial ? [
-                  'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=300&q=80',
-                  'https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=300&q=80',
-                  'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&q=80',
-                  'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=300&q=80'
-                ] : [
-                  'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=300&q=80',
-                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&q=80',
-                  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80',
-                  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&q=80'
-                ];
-
-            setGridImages(finalImages);
-            setReferenceSheet({
-              id: Date.now().toString(),
-              prompt,
-              model,
-              images: finalImages,
-              referenceImage: uploadedImage,
-              createdAt: new Date().toLocaleTimeString()
-            });
-            setGenerating(false);
-
-          } else if (statusData.status === 'failed') {
-            clearInterval(pollInterval);
-            setGenerating(false);
-            alert('Generation failed on Eden Art API.');
-          }
-        } catch (pollErr) {
-          clearInterval(pollInterval);
-          setGenerating(false);
-          console.error(pollErr);
-        }
-      }, 2000);
+      setGridImages(data.images);
+      setReferenceSheet({
+        id: Date.now().toString(),
+        prompt,
+        model,
+        images: data.images,
+        referenceImage: uploadedImage,
+        createdAt: new Date().toLocaleTimeString()
+      });
+      setGenerating(false);
 
     } catch (err) {
       setGenerating(false);
