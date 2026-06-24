@@ -1,81 +1,61 @@
-# AI Storyboarding & Video Generation App
+# Antigravity Video-Gen Studio
 
-An interactive web application designed to generate storyboards and compile them into cinematic videos using AI. The app combines a modern React frontend with secure Vercel serverless function proxies.
-
----
-
-## 🚀 Key Features
-
-* **AI Reference Sheet Generator**: Generate prompt-based character or environment sheets using **Eden AI** (DALL-E 3).
-* **Interactive Storyboard Grid**: Create and edit panels, apply custom camera movements, and regenerate individual panels.
-* **AI Video Sequencer**: Compile storyboard panels into high-quality MP4 videos using **JSON2Video**.
-* **Zero-State Serverless Backend**: Proxies API requests to secure your credentials, encoding task parameters into tokens for stateless polling.
+A premium, serverless-first storyboard-to-video workflow interface deployed on Vercel. Integrates Google Vertex AI (Imagen 3) for style sheets and storyboard panels, saving assets directly to Google Cloud Storage (GCS) and compiling them into video edits via JSON2Video.
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠 Required Environment Variables
 
-* **Frontend**: React, Vite, TailwindCSS, Lucide Icons.
-* **Backend**: Node.js Vercel Serverless Functions (`/api/*`).
-* **AI Services**:
-  * **Eden AI** (`edenai.co`) for panel image generation.
-  * **JSON2Video** (`json2video.com`) for video compiling.
+For live integrations, configure these keys in your **Vercel Project Settings**:
 
----
+| Variable Name | Description / Format | Location |
+| :--- | :--- | :--- |
+| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | The entire service account key JSON file | GCP IAM Console |
+| `JSON_TO_VIDEO_API_KEY` | Raw key string | [JSON2Video API Dashboard](https://json2video.com/dashboard/apikeys) |
 
-## ⚙️ Setup & Credentials
-
-1. Create a `.env` file in the project root:
-   ```env
-   EDEN_API_KEY=your_eden_ai_master_production_token
-   JSON_TO_VIDEO_API_KEY=your_json2video_api_key
-   ```
-   > *Note: Make sure to use the **Master Production API Token** from your Eden AI settings panel.*
-
-2. Ensure your `.env` is ignored by Git (already configured in `.gitignore`).
+*Note: The `EDENAI_API_KEY` is deprecated and can be safely deleted.*
 
 ---
 
-## 💻 Local Development
+## 🧪 How to Test API Keys & Integration
 
-Because the project relies on serverless functions in the `/api` directory, you must run it with the Vercel dev server instead of standard Vite to handle proxy routing:
+You can run direct diagnostic curl commands or local Node.js tests to verify your environment variables.
 
-1. **Install Vercel CLI (if not already installed)**:
-   ```bash
-   npm install -g vercel
-   ```
-2. **Start the development server**:
-   ```bash
-   vercel dev
-   ```
-   *(Or run `npx vercel dev` to launch without installing globally)*.
-
-3. **Verify API Credentials**:
-   You can verify your configuration at any time by running the built-in diagnostic tool:
-   ```bash
-   node test-api-keys.js
-   ```
-
----
-
-## 📁 Project Structure
-
-```text
-├── api/                   # Vercel serverless api functions
-│   ├── generate.js        # Submits image requests (base64 token generator)
-│   ├── generate-status.js # Calls Eden AI and handles synchronous generation
-│   ├── render.js          # Formats and sends scenes to JSON2Video
-│   └── status.js          # Polls video rendering status from JSON2Video
-├── src/                   # React frontend components and state
-│   ├── components/
-│   │   ├── ReferenceSheetTab.jsx
-│   │   ├── StoryboardTab.jsx
-│   │   ├── VideoTab.jsx
-│   │   └── EditorTab.jsx
-│   ├── App.jsx
-│   └── main.jsx
-├── test-api-keys.js       # Local verification tool for keys
-├── .env                   # Local credentials (ignored by git)
-├── .gitignore             # Git ignore file
-└── package.json           # Project dependencies
+### 1. Test GCS Signed URL & Auth
+Run this in your local console to verify your GCP Service Account credentials JSON is configured correctly and has write permissions to GCS:
+```bash
+node -e "
+const { Storage } = require('@google-cloud/storage');
+const storage = new Storage({
+  projectId: 'antigravity-cli-and-adk-500010',
+  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
+});
+storage.bucket('antigravity-storyboards').file('test-check.txt').save('verify').then(() => console.log('✅ GCS Write Success')).catch(console.error);
+"
 ```
+
+### 2. Test Imagen 3 Vertex AI generation
+Verify that your GCP service account has the **Vertex AI User** role (`roles/aiplatform.user`) active:
+```bash
+node -e "
+const { GoogleAuth } = require('google-auth-library');
+const auth = new GoogleAuth({
+  scopes: 'https://www.googleapis.com/auth/cloud-platform',
+  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
+});
+auth.getClient().then(client => {
+  client.request({
+    url: 'https://us-central1-aiplatform.googleapis.com/v1/projects/antigravity-cli-and-adk-500010/locations/us-central1/publishers/google/models/imagen-3.0-generate-002:predict',
+    method: 'POST',
+    data: { instances: [{ prompt: 'Red square' }], parameters: { sampleCount: 1 } }
+  }).then(() => console.log('✅ Vertex AI Imagen Access Success')).catch(console.error);
+});
+"
+```
+
+### 3. Test JSON2Video API key
+Confirm your render key is valid:
+```bash
+curl -X GET "https://api.json2video.com/v2/movie" -H "x-api-key: YOUR_JSON2VIDEO_KEY"
+```
+*(A successful key returns a JSON response containing movie arrays or empty lists, not an authentication failure).*
