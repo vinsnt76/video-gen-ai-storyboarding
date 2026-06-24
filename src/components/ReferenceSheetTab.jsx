@@ -3,7 +3,7 @@ import { Sparkles, Eye, RefreshCw, Layers, Wand2 } from 'lucide-react';
 
 export default function ReferenceSheetTab({ referenceSheet, setReferenceSheet }) {
   const [prompt, setPrompt] = useState('Cyberpunk street racer, female, neon teal leather jacket, silver visor, athletic build, gritty urban background');
-  const [model, setModel] = useState('GPT Image 2');
+  const [model, setModel] = useState('Google Imagen 3');
   const [generating, setGenerating] = useState(false);
   const [gridImages, setGridImages] = useState(null);
   const [uploadedImage, setUploadedImage] = useState(null);
@@ -140,8 +140,8 @@ export default function ReferenceSheetTab({ referenceSheet, setReferenceSheet })
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
               >
-                <option value="GPT Image 2">GPT Image 2 (Best for cinematic composition)</option>
-                <option value="Nano Banana Pro">Nano Banana Pro (Best for stylized art & characters)</option>
+                <option value="Google Imagen 3">Google Imagen 3 (Vertex AI Direct)</option>
+                <option value="Nano Banana Pro">Nano Banana Pro (Legacy StabilityAI)</option>
               </select>
             </div>
             <div className="flex items-end">
