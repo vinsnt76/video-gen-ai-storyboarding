@@ -18,14 +18,14 @@ export default async function handler(req, res) {
   try {
     // 1. Setup GCP Authentication
     const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-    const projectId = process.env.GCP_PROJECT_ID || "antigravity-cli-and-adk-500010";
+    const defaultProjectId = process.env.GCP_PROJECT_ID || "antigravity-cli-and-adk-500010";
     const bucketName = process.env.GCS_BUCKET_NAME || "antigravity-storyboards";
 
     let authOptions = {
       scopes: "https://www.googleapis.com/auth/cloud-platform"
     };
     let storageOptions = {
-      projectId: projectId
+      projectId: defaultProjectId
     };
 
     if (serviceAccountJson) {
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
     const auth = new GoogleAuth(authOptions);
     const client = await auth.getClient();
-    const projectId = await auth.getProjectId();
+    const projectId = await auth.getProjectId() || defaultProjectId;
 
     // 2. Vertex AI Imagen 3 API Configuration (us-central1 region)
     const location = "us-central1";
